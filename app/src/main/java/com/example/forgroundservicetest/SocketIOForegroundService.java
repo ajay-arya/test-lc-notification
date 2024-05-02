@@ -5,7 +5,6 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
-import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 import android.os.IBinder;
@@ -18,7 +17,6 @@ import io.socket.client.IO;
 import io.socket.client.Socket;
 import io.socket.emitter.Emitter;
 
-import java.io.IOException;
 import java.net.URISyntaxException;
 
 public class SocketIOForegroundService extends Service {
@@ -44,18 +42,12 @@ public class SocketIOForegroundService extends Service {
         Log.d(">>>", "startForeground");
         createNotificationChannel();
 
-        // Create notification to run service in foreground
         Intent notificationIntent = new Intent(this, MainActivity.class);
-        int pendingIntentFlags = PendingIntent.FLAG_IMMUTABLE; // Use FLAG_IMMUTABLE for Android S and above
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
-            pendingIntentFlags = PendingIntent.FLAG_UPDATE_CURRENT;
-        }
-        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, pendingIntentFlags);
+        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
 
-
-        Notification notification = new NotificationCompat.Builder(this, "channel_id")
-                .setContentTitle("Socket.IO Service")
-                .setContentText("Listening for socket messages...")
+        Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
+                .setContentTitle("LedgerChat Testing")
+                .setContentText("Listening for socket messages")
                 .setSmallIcon(R.drawable.ic_notification)
                 .setContentIntent(pendingIntent)
                 .build();
@@ -63,12 +55,42 @@ public class SocketIOForegroundService extends Service {
         startForeground(NOTIFICATION_ID, notification);
     }
 
-    private void createNotificationChannel() {
+    private NotificationManager createNotificationChannel() {
+        NotificationManager manager = null;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel channel = new NotificationChannel("channel_id", "Channel Name", NotificationManager.IMPORTANCE_DEFAULT);
-            NotificationManager manager = getSystemService(NotificationManager.class);
+            NotificationChannel channel = new NotificationChannel(CHANNEL_ID, "Channel Name", NotificationManager.IMPORTANCE_DEFAULT);
+            manager = getSystemService(NotificationManager.class);
             manager.createNotificationChannel(channel);
         }
+        return manager;
+    }
+
+    private void updateNotification(String message) {
+        if (inboxStyle == null) {
+            inboxStyle = new NotificationCompat.InboxStyle();
+        }
+
+        inboxStyle.addLine(message);
+
+        if (notificationManager == null) {
+            notificationManager = createNotificationChannel();
+        }
+
+        Intent notificationIntent = new Intent(this, MainActivity.class);
+        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
+
+
+        Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
+                .setContentTitle("LedgerChat")
+                .setSmallIcon(R.drawable.ic_notification)
+//                .setStyle(inboxStyle)
+//                .build();
+
+                .setContentText(message)
+                .setContentIntent(pendingIntent)
+                .build();
+
+        notificationManager.notify(NOTIFICATION_ID, notification);
     }
 
     @Override
@@ -81,18 +103,17 @@ public class SocketIOForegroundService extends Service {
         Log.d(">>>", "OnCreate");
         super.onCreate();
 
-        // Connect to Socket.IO server
         try {
-//            socket = IO.socket("http://10.0.2.2:3000");
-            socket = IO.socket("http://192.168.20.13:3000");
+            socket = IO.socket("http://10.0.2.2:3000");
+//            socket = IO.socket("http://192.168.20.13:3000");
             socket.connect();
-            Log.d(">>>", "OnCreate--3");
             socket.on("message", new Emitter.Listener() {
                 @Override
                 public void call(Object... args) {
                     String message = (String) args[0];
                     Log.d(">>>", "args" + args);
                     Log.d(">>>", "message: " + message);
+                    updateNotification(message);
                 }
             });
 
