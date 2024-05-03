@@ -21,7 +21,7 @@ import java.net.URISyntaxException;
 
 public class SocketIOForegroundService extends Service {
 
-    private static final String TAG = "SocketIOService";
+    private static String gUsername;
     private static final int NOTIFICATION_ID = 123;
     private static final String CHANNEL_ID = "TEST";
 
@@ -34,26 +34,9 @@ public class SocketIOForegroundService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         super.onStartCommand(intent, flags, startId);
-        startForeground();
         return START_STICKY;
     }
 
-    private void startForeground() {
-        Log.d(">>>", "startForeground");
-        createNotificationChannel();
-
-        Intent notificationIntent = new Intent(this, MainActivity.class);
-        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
-
-        Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setContentTitle("LedgerChat Testing")
-                .setContentText("Listening for socket messages")
-                .setSmallIcon(R.drawable.ic_notification)
-                .setContentIntent(pendingIntent)
-                .build();
-
-        startForeground(NOTIFICATION_ID, notification);
-    }
 
     private NotificationManager createNotificationChannel() {
         NotificationManager manager = null;
@@ -66,11 +49,28 @@ public class SocketIOForegroundService extends Service {
     }
 
     private void updateNotification(String message) {
-        if (inboxStyle == null) {
-            inboxStyle = new NotificationCompat.InboxStyle();
-        }
-
-        inboxStyle.addLine(message);
+//        Intent intent = getPackageManager().getLaunchIntentForPackage("com.csdroid.pkg");
+////        Intent intent = getPackageManager().getLaunchIntentForPackage("com.ledgerchatenterprise");
+//        Log.d(">>>", "Notification FUNCTION");
+//        if (intent != null) {
+//            Log.d(">>>", "SHOW Notification");
+//            PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
+//            if (notificationManager == null) {
+//                notificationManager = createNotificationChannel();
+//            }
+//
+//            Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
+//                    .setContentTitle("LedgerChat Enterprise")
+//                    .setContentText(message)
+//                    .setSmallIcon(R.drawable.ic_notification)
+//                    .setContentIntent(pendingIntent)
+//                    .build();
+//
+//            notificationManager.notify(NOTIFICATION_ID, notification);
+//            startForeground(NOTIFICATION_ID, notification);
+//        } else {
+//            Log.d(">>>", "no packages found");
+//        }
 
         if (notificationManager == null) {
             notificationManager = createNotificationChannel();
@@ -83,14 +83,12 @@ public class SocketIOForegroundService extends Service {
         Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setContentTitle("LedgerChat")
                 .setSmallIcon(R.drawable.ic_notification)
-//                .setStyle(inboxStyle)
-//                .build();
-
                 .setContentText(message)
                 .setContentIntent(pendingIntent)
                 .build();
 
         notificationManager.notify(NOTIFICATION_ID, notification);
+
     }
 
     @Override
@@ -104,8 +102,8 @@ public class SocketIOForegroundService extends Service {
         super.onCreate();
 
         try {
-            socket = IO.socket("http://10.0.2.2:3000");
-//            socket = IO.socket("http://192.168.20.13:3000");
+//            socket = IO.socket("http://10.0.2.2:3000");
+            socket = IO.socket("http://192.168.20.13:3000");
             socket.connect();
             socket.on("message", new Emitter.Listener() {
                 @Override
@@ -113,14 +111,49 @@ public class SocketIOForegroundService extends Service {
                     String message = (String) args[0];
                     Log.d(">>>", "args" + args);
                     Log.d(">>>", "message: " + message);
+
                     updateNotification(message);
+
                 }
             });
+//            socket.on(gUsername, new Emitter.Listener() {
+//                @Override
+//                public void call(Object... args) {
+//                    String message = (String) args[0];
+//                    Log.d(">>>", "username: args" + args);
+//                    Log.d(">>>", "username: message: " + message);
+//
+//                    updateNotification(message);
+//
+//                }
+//            });
 
         } catch (URISyntaxException e) {
             throw new RuntimeException(e);
         }
     }
+
+    public void newListener(String username) {
+        Log.d(">>>", "got username" + username);
+        gUsername = username;
+        onCreate();
+
+        if (socket != null) {
+            Log.d(">>>", "socket is not null");
+        } else {
+            Log.d(">>>", "socket is null");
+        }
+//        socket.on("username", new Emitter.Listener() {
+//            @Override
+//            public void call(Object... args) {
+//                String message = (String) args[0];
+//                Log.d(">>>", "args" + args);
+//                Log.d(">>>", "message: " + message);
+//                updateNotification(message);
+//            }
+//        });
+    }
+
 
 
     @Override
