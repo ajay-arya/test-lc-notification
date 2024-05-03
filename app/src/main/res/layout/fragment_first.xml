@@ -31,5 +31,14 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
+        <TextView
+            android:id="@+id/textview_username"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=""
+            tools:ignore="MissingConstraints"
+            tools:layout_editor_absoluteX="133dp"
+            tools:layout_editor_absoluteY="155dp" />
+
     </androidx.constraintlayout.widget.ConstraintLayout>
 </androidx.core.widget.NestedScrollView>

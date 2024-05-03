@@ -11,6 +11,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
@@ -35,35 +36,42 @@ public class FirstFragment extends Fragment {
 
     public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-
         final EditText editText = view.findViewById(R.id.edit_text_input);
+        final TextView textView = view.findViewById(R.id.textview_username);
 
-                binding.buttonFirst.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View view) {
-                        String enteredText = editText.getText().toString();
-                        Log.d(">>>", "Entered text: " + enteredText);
-                        Log.d(">>>", "isServiceBound: " + isServiceBound);
-                        if (isServiceBound) {
-                            socketService.startListeningTo(enteredText);
-                        }
+        binding.buttonFirst.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                String enteredText = editText.getText().toString();
+                Log.d(">>>", "Entered text: " + enteredText);
+                Log.d(">>>", "isServiceBound: " + isServiceBound);
+                if (!isServiceBound) {
+                    startAndBindService();
+                } else {
+                    socketService.startListeningTo(enteredText);
+                    editText.setText("");
+                    textView.setText("Added: " + enteredText);
+                }
+            }
+        });
+    }
 
-                    }
-                });
+    private void startAndBindService() {
+        Intent intent = new Intent(getActivity(), SocketService.class);
+        getActivity().startService(intent);
+        getActivity().bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
     }
 
     @Override
     public void onStart() {
-        Log.d(">>>","onStart");
+        Log.d(">>>", "onStart");
         super.onStart();
-        Intent intent = new Intent(getActivity(), SocketService.class);
-        getActivity().bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
+        startAndBindService();
     }
 
     public void onStop() {
-        Log.d(">>>","onStop");
+        Log.d(">>>", "onStop");
         super.onStop();
-        // Unbind from SocketService
         if (isServiceBound) {
             getActivity().unbindService(serviceConnection);
             isServiceBound = false;
@@ -72,7 +80,7 @@ public class FirstFragment extends Fragment {
 
     @Override
     public void onDestroyView() {
-        Log.d(">>>","onDestroyView");
+        Log.d(">>>", "onDestroyView");
         super.onDestroyView();
         binding = null;
     }
@@ -80,16 +88,15 @@ public class FirstFragment extends Fragment {
     private final ServiceConnection serviceConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder iBinder) {
-            Log.d(">>>","onServiceConnected");
+            Log.d(">>>", "onServiceConnected");
             SocketService.LocalBinder binder = (SocketService.LocalBinder) iBinder;
             socketService = binder.getService();
             isServiceBound = true;
-
         }
 
         @Override
         public void onServiceDisconnected(ComponentName componentName) {
-            Log.d(">>>","onServiceDisconnected");
+            Log.d(">>>", "onServiceDisconnected");
             isServiceBound = false;
         }
     };
